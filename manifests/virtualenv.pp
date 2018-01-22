@@ -16,6 +16,9 @@
 # @param venv_dir
 #  Directory to install virtualenv to. Default: $name
 #
+# @param distribute
+#  Include distribute in the virtualenv. Default: true
+#
 # @param index
 #  Base URL of Python package index. Default: none (http://pypi.python.org/simple/)
 #
@@ -58,6 +61,7 @@ define python::virtualenv (
   String $requirements   = undef,
   Boolean $systempkgs    = false,
   String $venv_dir       = $name,
+  Boolean $distribute    = false,
   String $index          = undef,
   String $owner          = 'root',
   String $group          = '0',
@@ -112,6 +116,11 @@ define python::virtualenv (
       false   => undef,
     }
 
+    $distribute_pkg = $distribute ? {
+      true    => 'distribute',
+      default => 'setuptools',
+    }
+
     $pypi_index = $index ? {
       false   => undef,
       default => "-i ${index}",
@@ -132,8 +141,8 @@ define python::virtualenv (
       "-p ${python}",
       "${venv_dir} &&",
       "${pip_cmd} wheel --help > /dev/null 2>&1 &&",
-      "{ ${pip_cmd} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; };",
-      "{ ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} \$wheel_support_flag --upgrade pip setuptools || ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index}  --upgrade pip setuptools ;}",
+      "{ ${pip_cmd} wheel --version > /dev/null 2>&1 || { ${pip_cmd} install --help 2>&1 | grep -q no-use-wheel; } && wheel_support_flag='--no-use-wheel' || true; } &&",
+      "{ ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} \$wheel_support_flag --upgrade pip ${distribute_pkg} || ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} --upgrade pip ${distribute_pkg}; }",
     ]
 
     exec { "python_virtualenv_${venv_dir}":
@@ -149,14 +158,21 @@ define python::virtualenv (
     }
 
     if $requirements {
+      $virtualenv_install_args = [
+        "${pip_cmd} wheel --help > /dev/null 2>&1 &&",
+        "{ ${pip_cmd} wheel --version > /dev/null 2>&1 || { ${pip_cmd} install --help 2>&1 | grep -q no-use-wheel; } && wheel_support_flag='--no-use-wheel' || true; } &&",
+        "{ ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} \$wheel_support_flag -r ${requirements} ${extra_pip_args}",
+      ]
+
       exec { "python_requirements_initial_install_${requirements}_${venv_dir}":
-        command     => "${pip_cmd} wheel --help > /dev/null 2>&1 && { ${pip_cmd} wheel --version > /dev/null 2>&1 || wheel_support_flag='--no-use-wheel'; } ; ${pip_cmd} --log ${venv_dir}/pip.log install ${pypi_index} \$wheel_support_flag -r ${requirements} ${extra_pip_args}",
+        command     => $virtualenv_install_args.delete_undef_values().join(' '),
         refreshonly => true,
         timeout     => $timeout,
         user        => $owner,
         subscribe   => Exec["python_virtualenv_${venv_dir}"],
         environment => $environment,
         cwd         => $cwd,
+        path        => $path,
       }
 
       python::requirements { "${requirements}_${venv_dir}":

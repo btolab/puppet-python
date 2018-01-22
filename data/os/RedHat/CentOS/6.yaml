@@ -1,0 +1,14 @@
+---
+python::version: '2'
+python::valid_versions:
+  - '2'
+  - '27'
+python::version_data:
+  '2':
+    python_package: 'python'
+    virtualenv_package: 'python-virtualenv'
+    pip_package: 'python-pip'
+  '27':
+    python_package: 'python27'
+    virtualenv_package: 'python27-python-virtualenv'
+    pip_package: 'python27-python-pip'

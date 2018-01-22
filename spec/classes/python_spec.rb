@@ -284,7 +284,8 @@ describe 'python' do
               it { is_expected.to contain_package('python2.7') }
             when 'Archlinux'
               it { is_expected.to contain_package('python2') }
-              # when 'RedHat'
+            when 'RedHat'
+              it { is_expected.to contain_package('python').with_ensure(two_version) }
             end
           end
 

@@ -55,10 +55,10 @@
 define python::virtualenv (
   String $ensure         = present,
   String $version        = 'system', # TODO: This doesn't look to work
-  Boolean $requirements  = false,
+  String $requirements   = undef,
   Boolean $systempkgs    = false,
   String $venv_dir       = $name,
-  Boolean $index         = false,
+  String $index          = undef,
   String $owner          = 'root',
   String $group          = '0',
   String $mode           = '0755',

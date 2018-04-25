@@ -3,8 +3,6 @@ python::version: '2'
 python::valid_versions:
   - '2'
   - '3'
-  - '34'
-  - '36'
 python::use_epel: true
 python::version_data:
     '2':
